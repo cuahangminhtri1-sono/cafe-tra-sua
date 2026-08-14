@@ -279,6 +279,8 @@ table.tb tr:last-child td{border-bottom:0}
 
 #expiry-banner{display:none;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(90deg,rgba(201,162,75,.14),rgba(201,162,75,.06));border-bottom:1px solid var(--gold-d);padding:8px 14px;font-size:13px;color:var(--gold-l)}
 #expiry-banner button{background:var(--gold);color:#1a1204;border:none;border-radius:8px;padding:6px 12px;font-weight:700;font-size:12.5px;cursor:pointer;flex:none}
+#expiry-banner.warn{background:linear-gradient(90deg,rgba(217,112,95,.20),rgba(217,112,95,.07));border-bottom-color:#D9705F;color:#F1B7AB}
+#expiry-banner.warn button{background:#D9705F;color:#2a0f0a}
 
 #admin-view{display:none;position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto}
 .adm-top{position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--line);padding:14px 16px;display:flex;align-items:center;gap:12px;z-index:2}
@@ -1864,14 +1866,14 @@ function viewSettings(){
   // In ấn
   h+='<div class="panel pad" style="margin-bottom:14px"><div class="b big" style="margin-bottom:12px">🖨️ In ấn</div>'+
     '<div class="row"><label class="fld grow">Phương thức in<select id="_sprinter"><option value="browser"'+(s.printer==='browser'?' selected':'')+'>Trình duyệt (WiFi / AirPrint / PDF)</option><option value="bluetooth"'+(s.printer==='bluetooth'?' selected':'')+'>Máy in Bluetooth nhiệt (giữ dấu tiếng Việt)</option><option value="ask"'+(s.printer==='ask'?' selected':'')+'>Hỏi mỗi lần in (bảng chọn)</option></select></label>'+
-    '<label class="fld" style="width:150px">Khổ giấy<select id="_spaper"><option value="80"'+(s.paperWidth==80?' selected':'')+'>80mm</option><option value="58"'+(s.paperWidth==58?' selected':'')+'>58mm</option></select></label></div>'+
+    '<label class="fld" style="width:150px">Khổ giấy<select id="_spaper"><option value="80"'+(s.paperWidth==80?' selected':'')+'>80mm</option><option value="58"'+(s.paperWidth==58?' selected':'')+'>58mm</option><option value="A5"'+(s.paperWidth==='A5'?' selected':'')+'>A5 (máy tính)</option><option value="A4"'+(s.paperWidth==='A4'?' selected':'')+'>A4 (máy tính)</option></select></label></div>'+
     '<label class="fld" style="margin-top:10px">Lời cảm ơn cuối bill<input id="_sfooter" value="'+esc(s.receiptFooter||'')+'"></label>'+
     '<label class="row" style="gap:8px;margin-top:10px"><span class="switch"><input type="checkbox" id="_sdrawer" '+(s.drawerKick?'checked':'')+'><span class="sl"></span></span> Mở két tiền khi in bill tiền mặt (máy in BT)</label>'+
     '<label class="row" style="gap:8px;margin-top:6px"><span class="switch"><input type="checkbox" id="_skitchen" '+(s.autoKitchen?'checked':'')+'><span class="sl"></span></span> Tự in phiếu pha chế sau thanh toán</label>'+
     '<label class="row" style="gap:8px;margin-top:6px"><span class="switch"><input type="checkbox" id="_slabel" '+(s.autoLabel?'checked':'')+'><span class="sl"></span></span> Tự in tem ly sau thanh toán</label>'+
     '<label class="row" style="gap:8px;margin-top:6px"><span class="switch"><input type="checkbox" id="_ssound" '+(s.newOrderSound!==false?'checked':'')+'><span class="sl"></span></span> 🔔 Âm báo khi có đơn mới (máy pha chế)</label>'+
     '<div class="row gap6" style="margin-top:10px"><button class="btn sm" onclick="A.testPrint()">🖨️ In thử bill</button><button class="btn sm" onclick="A.testLabel()">🏷️ In thử tem</button><button class="btn sm" onclick="A.printerMenu()">📶 Máy in (kết nối / in thử)</button></div>'+
-    '<div class="muted sm" style="margin-top:8px">In Bluetooth nhiệt vẽ hoá đơn thành ảnh nên <b>giữ nguyên tiếng Việt có dấu</b>. Chỉ chạy trên Android + Chrome, trang phải là HTTPS.</div></div>'+
+    '<div class="muted sm" style="margin-top:8px">In Bluetooth nhiệt vẽ hoá đơn thành ảnh nên <b>giữ nguyên tiếng Việt có dấu</b>. Chỉ chạy trên Android + Chrome, trang phải là HTTPS. Chọn khổ <b>A4/A5</b> để in trên <b>máy tính</b> bằng máy in giấy thường (qua trình duyệt — chọn máy in trong hộp thoại in). Có thể kết nối <b>nhiều máy in Bluetooth</b> và chọn máy khi in.</div></div>'+
   '<div class="panel pad" style="margin-bottom:14px"><div class="b big" style="margin-bottom:12px">🏅 Hạng thành viên (ưu đãi tự động)</div>'+
     '<div class="muted sm" style="margin-bottom:8px">Theo tổng chi tiêu tích luỹ. Hệ thống tự áp mức cao nhất giữa Hạng và Khuyến mãi.</div>'+
     (s.tiers||[]).map((t,i)=>'<div class="row" style="margin-top:6px"><label class="fld" style="width:120px">Tên hạng<input id="_tn'+i+'" value="'+esc(t.name)+'"></label><label class="fld grow">Chi tiêu từ (₫)<input id="_tm'+i+'" type="number" value="'+(t.min||0)+'"'+(i===0?' disabled':'')+'></label><label class="fld" style="width:90px">Giảm %<input id="_tp'+i+'" type="number" value="'+(t.pct||0)+'"></label></div>').join('')+'</div>'+
@@ -1903,7 +1905,7 @@ function saveSettings(){ const s=st().settings;
   s.ratePer=Number($('#_srate').value)||0; s.pointValue=Number($('#_spval').value)||0;
   s.sugarOptions=$('#_ssugar').value.split(',').map(x=>x.trim()).filter(Boolean);
   s.iceOptions=$('#_sice').value.split(',').map(x=>x.trim()).filter(Boolean);
-  s.printer=$('#_sprinter').value; s.paperWidth=Number($('#_spaper').value)||80; s.receiptFooter=$('#_sfooter').value.trim();
+  s.printer=$('#_sprinter').value; {const _pv=$('#_spaper').value; s.paperWidth=(_pv==='A4'||_pv==='A5')?_pv:(Number(_pv)||80);} s.receiptFooter=$('#_sfooter').value.trim();
   s.drawerKick=$('#_sdrawer')?$('#_sdrawer').checked:s.drawerKick; s.autoKitchen=$('#_skitchen')?$('#_skitchen').checked:s.autoKitchen;
   s.bankBin=($('#_sbin')?$('#_sbin').value.trim():s.bankBin)||''; s.bankAcc=($('#_sacc')?$('#_sacc').value.trim():s.bankAcc)||''; s.bankAccName=($('#_saccname')?$('#_saccname').value.trim():s.bankAccName)||'';
   s.autoLabel=$('#_slabel')?$('#_slabel').checked:!!s.autoLabel; s.newOrderSound=$('#_ssound')?$('#_ssound').checked:(s.newOrderSound!==false);
@@ -1940,7 +1942,17 @@ function connectCloud(){ const cfg=$('#_fbcfg').value.trim();
 /* ==================================================================
    IN ẤN (bill & bếp & ca)
    ================================================================== */
-function receiptCSS(w){ return '<style>*{margin:0;padding:0;box-sizing:border-box}#r{font-family:'+"'Courier New',monospace"+';width:'+(w==58?'58mm':'80mm')+';padding:6px;color:#000;font-size:'+(w==58?'11px':'12px')+';line-height:1.4}#r .c{text-align:center}#r .b{font-weight:bold}#r .l{border-top:1px dashed #000;margin:5px 0}#r table{width:100%;border-collapse:collapse}#r td{padding:1px 0;vertical-align:top}#r .r{text-align:right}#r .big{font-size:'+(w==58?'14px':'16px')+'}</style>'; }
+function paperIsSheet(w){ return w==='A4'||w==='A5'; }
+function receiptCSS(w){
+  if(paperIsSheet(w)){
+    var pg=(w==='A5')?'A5':'A4', mg=(w==='A5')?'8mm':'12mm', fs=(w==='A5')?'12px':'13px', bg=(w==='A5')?'17px':'19px', mw=(w==='A5')?'128mm':'176mm';
+    return '<style>@page{size:'+pg+';margin:'+mg+'}*{margin:0;padding:0;box-sizing:border-box}'+
+      '#r{font-family:\'Segoe UI\',Roboto,Arial,sans-serif;width:100%;max-width:'+mw+';margin:0 auto;color:#000;font-size:'+fs+';line-height:1.5}'+
+      '#r .c{text-align:center}#r .b{font-weight:bold}#r .l{border-top:1px dashed #000;margin:8px 0}'+
+      '#r table{width:100%;border-collapse:collapse}#r td{padding:3px 2px;vertical-align:top}#r .r{text-align:right}'+
+      '#r .big{font-size:'+bg+'}</style>';
+  }
+  return '<style>*{margin:0;padding:0;box-sizing:border-box}#r{font-family:'+"'Courier New',monospace"+';width:'+(w==58?'58mm':'80mm')+';padding:6px;color:#000;font-size:'+(w==58?'11px':'12px')+';line-height:1.4}#r .c{text-align:center}#r .b{font-weight:bold}#r .l{border-top:1px dashed #000;margin:5px 0}#r table{width:100%;border-collapse:collapse}#r td{padding:1px 0;vertical-align:top}#r .r{text-align:right}#r .big{font-size:'+(w==58?'14px':'16px')+'}</style>'; }
 function buildReceiptHTML(o){ const s=st().settings; const w=s.paperWidth; const cust=o.customerId?customerById(o.customerId):null;
   let rows=o.items.map(l=>{ const opt=[l.sizeName,l.sugar,l.ice].filter(Boolean).join(',');
     const tp=(l.toppings||[]).map(t=>t.name).join(',');
@@ -2058,6 +2070,8 @@ async function btPrintText(text,opt){ opt=opt||{};
    ═══════════════════════════════════════════════════════════════════════════ */
 var CP={
   bt:{device:null,server:null,char:null,name:''},
+  printers:[],          /* đa máy in: [{id,device,server,char,name}] */
+  activeId:null,        /* id máy in đang chọn để in */
   services:[0x18F0,0xFF00,0xFFE0,0xFEE7,0x18F1,
     '000018f0-0000-1000-8000-00805f9b34fb','0000ff00-0000-1000-8000-00805f9b34fb',
     '0000ffe0-0000-1000-8000-00805f9b34fb'],
@@ -2065,29 +2079,50 @@ var CP={
   sleep(ms){ return new Promise(function(r){ setTimeout(r,ms); }); },
   supported(){ return !!(navigator.bluetooth&&navigator.bluetooth.requestDevice); },
   paper(){ try{ return Number(st().settings.paperWidth)===58?58:80; }catch(e){ return 80; } },
-  setPaper(v){ try{ st().settings.paperWidth=(v===58?58:80); markDirty('settings'); }catch(e){} },
+  setPaper(v){ try{ st().settings.paperWidth=(v==='A4'||v==='A5')?v:((v===58||v==='58')?58:80); markDirty('settings'); }catch(e){} },
   dots(){ return this.paper()===58?384:576; },
   savedName(){ try{ return localStorage.getItem('cafe_bt_name')||''; }catch(e){ return ''; } },
 
-  /* --- Kết nối máy in Bluetooth (tự dò kênh ghi được) --- */
+  /* --- Quét kênh (characteristic) ghi được trong 1 GATT server --- */
+  async _scanWritable(srv){
+    const svcs=await srv.getPrimaryServices();
+    for(let i=0;i<svcs.length;i++){
+      const cs=await svcs[i].getCharacteristics();
+      for(let j=0;j<cs.length;j++){ const pr=cs[j].properties; if(pr.write||pr.writeWithoutResponse) return cs[j]; }
+    }
+    return null;
+  },
+  _saveNames(){ try{ localStorage.setItem('cafe_bt_name',(this.bt&&this.bt.name)||''); localStorage.setItem('cafe_bt_list',JSON.stringify(this.printers.map(function(p){return p.name;}))); }catch(e){} },
+
+  /* --- Kết nối THÊM một máy in Bluetooth; ghi vào danh sách & đặt làm máy đang chọn --- */
   async connect(){
     if(!this.supported()){ this.say('Máy này không hỗ trợ in Bluetooth (chỉ Android + Chrome).','warn'); return false; }
-    var self=this;
     try{
       const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:this.services});
-      this.bt.device=dev; this.bt.name=dev.name||'Máy in';
-      dev.addEventListener('gattserverdisconnected',function(){ self.bt.server=null; self.bt.char=null; });
-      const srv=await dev.gatt.connect(); this.bt.server=srv;
-      const svcs=await srv.getPrimaryServices(); let wc=null;
-      for(let i=0;i<svcs.length&&!wc;i++){
-        const cs=await svcs[i].getCharacteristics();
-        for(let j=0;j<cs.length;j++){ const pr=cs[j].properties; if(pr.write||pr.writeWithoutResponse){ wc=cs[j]; break; } }
-      }
+      const P={ id:(dev.id||dev.name||('p'+Date.now())), device:dev, server:null, char:null, name:(dev.name||'Máy in') };
+      dev.addEventListener('gattserverdisconnected',function(){ P.server=null; P.char=null; });
+      const srv=await dev.gatt.connect(); P.server=srv;
+      const wc=await this._scanWritable(srv);
       if(!wc){ this.say('Máy in này không cho ghi qua web (có thể là Bluetooth SPP cổ điển).','warn'); return false; }
-      this.bt.char=wc; try{ localStorage.setItem('cafe_bt_name',this.bt.name); }catch(e){}
-      this.say('Đã kết nối: '+this.bt.name,'ok'); return true;
+      P.char=wc;
+      var ix=-1; for(var i=0;i<this.printers.length;i++){ if(this.printers[i].id===P.id){ ix=i; break; } }
+      if(ix>=0) this.printers[ix]=P; else this.printers.push(P);
+      this.activeId=P.id; this.bt=P; this._saveNames();
+      this.say('Đã kết nối: '+P.name+(this.printers.length>1?(' — tổng '+this.printers.length+' máy'):''),'ok'); return true;
     }catch(e){ this.say('Không kết nối được máy in Bluetooth.','err'); return false; }
   },
+  /* --- Chọn máy in đang dùng trong danh sách --- */
+  selectPrinter(id){ for(var i=0;i<this.printers.length;i++){ if(this.printers[i].id===id){ this.activeId=id; this.bt=this.printers[i]; this._saveNames(); return this.printers[i]; } } return null; },
+  /* --- Gỡ 1 máy in khỏi danh sách --- */
+  removePrinter(id){ var kept=[]; for(var i=0;i<this.printers.length;i++){ var p=this.printers[i]; if(p.id===id){ try{ if(p.device&&p.device.gatt&&p.device.gatt.connected) p.device.gatt.disconnect(); }catch(e){} } else kept.push(p); } this.printers=kept;
+    if(this.activeId===id){ if(kept.length){ this.activeId=kept[0].id; this.bt=kept[0]; } else { this.activeId=null; this.bt={device:null,server:null,char:null,name:''}; } } this._saveNames(); },
+  /* --- Nối lại 1 máy đã biết (chỉ rớt GATT) mà KHÔNG mở lại bảng chọn thiết bị --- */
+  async _reattach(P){ try{ if(!P||!P.device||!P.device.gatt) return false; const srv=await P.device.gatt.connect(); P.server=srv; const wc=await this._scanWritable(srv); if(!wc) return false; P.char=wc; return true; }catch(e){ return false; } },
+  /* --- Khôi phục danh sách máy đã cấp quyền sau khi tải lại trang (không cần bấm chọn) --- */
+  async restore(){ try{ if(!navigator.bluetooth||!navigator.bluetooth.getDevices) return; const devs=await navigator.bluetooth.getDevices(); var self=this;
+    devs.forEach(function(dev){ var id=dev.id||dev.name; if(!id) return; for(var i=0;i<self.printers.length;i++){ if(self.printers[i].id===id) return; }
+      var P={id:id,device:dev,server:null,char:null,name:dev.name||'Máy in'}; dev.addEventListener('gattserverdisconnected',function(){ P.server=null; P.char=null; }); self.printers.push(P);
+      if(!self.activeId){ self.activeId=P.id; self.bt=P; } }); }catch(e){} },
 
   /* --- Ghi từng gói 128 byte, nghỉ 20ms: chống tràn bộ đệm máy in giá rẻ --- */
   async write(bytes){
@@ -2206,8 +2241,11 @@ var CP={
     if(this.bt.char) return Promise.resolve(true);
     if(this._cx) return this._cx;
     var self=this;
-    this._cx=this.connect().then(function(ok){ self._cx=null; return ok; },
-                                 function(){ self._cx=null; return false; });
+    var attempt=(this.bt.device&&this.bt.device.gatt)
+      ? this._reattach(this.bt).then(function(ok){ return ok?true:self.connect(); })
+      : this.connect();
+    this._cx=Promise.resolve(attempt).then(function(ok){ self._cx=null; return ok; },
+                                           function(){ self._cx=null; return false; });
     return this._cx;
   },
   /* --- In ra máy Bluetooth. buildFn(W) trả 1 ảnh hoặc mảng ảnh (nhiều tem) --- */
@@ -2245,10 +2283,30 @@ var CP={
   /* --- Bảng chọn cách in (giống app Sổ Nợ) --- */
   menu(title,browserFn,buildFn,opt){
     if(document.getElementById('mtPrintMenu')) return;
-    const self=this, p=this.paper();
-    const nm=this.bt.name||this.savedName();
-    const conn=this.bt.char?('Đã kết nối: '+nm):'Chưa kết nối';
+    const self=this;
+    const paperVal=(function(){ try{ return st().settings.paperWidth; }catch(e){ return 80; } })();
+    const sheet=(paperVal==='A4'||paperVal==='A5');
     const BTN='width:100%;display:block;text-align:left;border-radius:12px;padding:13px 15px;margin-bottom:10px;cursor:pointer;font-family:inherit;line-height:1.35';
+    const pbtn=function(v,lb){ const on=(paperVal==v); return '<button class="mtPp" data-p="'+v+'" style="border:1px solid var(--line,#243A31);border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;background:'+(on?'var(--jade,#45B08F)':'transparent')+';color:'+(on?'#06120E':'var(--muted,#9DB3AA)')+'">'+lb+'</button>'; };
+    /* Khối máy in Bluetooth: khổ tờ → dùng trình duyệt; có nhiều máy → danh sách chọn; chưa có → nút kết nối+in */
+    let btHtml='';
+    if(sheet){
+      btHtml='<div style="font-size:12.5px;color:var(--muted,#9DB3AA);background:rgba(255,255,255,.04);border:1px dashed var(--line,#243A31);border-radius:10px;padding:10px;margin-bottom:10px">🖥️ Khổ <b>'+esc(String(paperVal))+'</b> in trên <b>máy tính</b> qua trình duyệt (máy in giấy thường). Chọn đúng máy in trong hộp thoại in.</div>';
+    } else if(this.printers.length){
+      btHtml='<div style="font-size:12px;color:var(--muted,#9DB3AA);margin:2px 2px 6px">Máy in Bluetooth ('+this.printers.length+') — chạm để in:</div>';
+      for(let i=0;i<this.printers.length;i++){ const P=this.printers[i]; const act=(P.id===this.activeId); const ready=!!P.char;
+        btHtml+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'+
+          '<button class="mtPick" data-id="'+esc(P.id)+'" style="flex:1;text-align:left;border-radius:11px;padding:11px 13px;cursor:pointer;font-family:inherit;background:'+(act?'rgba(201,162,75,.16)':'rgba(255,255,255,.04)')+';border:1.5px solid '+(act?'var(--gold,#C9A24B)':'var(--line,#243A31)')+';color:var(--text,#E8F0EC)">'+
+            '<span style="font-weight:700;font-size:14.5px">📶 '+esc(P.name)+'</span>'+(act?' <span style="color:var(--gold,#C9A24B);font-size:11.5px;font-weight:700">· đang chọn</span>':'')+'<br>'+
+            '<span style="font-size:11.5px;color:var(--muted,#9DB3AA)">'+(ready?'Sẵn sàng — chạm để in':'Đã lưu — chạm để nối lại &amp; in')+'</span></button>'+
+          '<button class="mtDel" data-id="'+esc(P.id)+'" title="Gỡ máy in" style="border:1px solid var(--line,#243A31);border-radius:10px;padding:12px 12px;cursor:pointer;font-family:inherit;background:transparent;color:#D9705F;font-weight:800">✕</button>'+
+        '</div>';
+      }
+    } else {
+      btHtml='<button id="mtBb" style="'+BTN+';background:rgba(201,162,75,.12);border:1.5px solid var(--gold,#C9A24B);color:var(--gold,#C9A24B)">'+
+        '<span style="font-weight:700;font-size:15px">📶 In máy in Bluetooth (nhiệt)</span><br>'+
+        '<span style="font-size:12px;opacity:.85">Giữ nguyên tiếng Việt có dấu. Chỉ Android + Chrome. Chưa kết nối máy nào — chạm để kết nối &amp; in.</span></button>';
+    }
     const ov=document.createElement('div'); ov.id='mtPrintMenu';
     ov.style.cssText='position:fixed;inset:0;z-index:2147481000;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center';
     const c=document.createElement('div');
@@ -2256,26 +2314,25 @@ var CP={
     c.innerHTML=
       '<div style="width:40px;height:4px;background:var(--line2,#2E4A3E);border-radius:3px;margin:0 auto 12px"></div>'+
       '<div style="font-weight:800;font-size:17px;margin-bottom:12px;text-align:center">'+esc(title||'Chọn cách in')+'</div>'+
+      '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 2px 12px;font-size:13px;color:var(--muted,#9DB3AA)">Khổ giấy: '+
+        pbtn('58','58mm')+pbtn('80','80mm')+pbtn('A5','A5')+pbtn('A4','A4')+'</div>'+
       '<button id="mtPb" style="'+BTN+';background:rgba(69,176,143,.12);border:1.5px solid var(--jade,#45B08F);color:var(--jade,#45B08F)">'+
         '<span style="font-weight:700;font-size:15px">🖨️ In qua trình duyệt</span><br>'+
-        '<span style="font-size:12px;opacity:.85">Máy in WiFi / AirPrint / lưu PDF. Chạy mọi máy, kể cả iPhone.</span></button>'+
-      '<button id="mtBb" style="'+BTN+';background:rgba(201,162,75,.12);border:1.5px solid var(--gold,#C9A24B);color:var(--gold,#C9A24B)">'+
-        '<span style="font-weight:700;font-size:15px">📶 In máy in Bluetooth (nhiệt)</span><br>'+
-        '<span style="font-size:12px;opacity:.85">Giữ nguyên tiếng Việt có dấu. Chỉ Android + Chrome. '+esc(conn)+'.</span></button>'+
-      '<div style="display:flex;align-items:center;gap:8px;margin:4px 2px 12px;font-size:13px;color:var(--muted,#9DB3AA)">Khổ giấy:'+
-        '<button id="mtP58" style="border:1px solid var(--line,#243A31);border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;background:'+(p===58?'var(--jade,#45B08F)':'transparent')+';color:'+(p===58?'#06120E':'var(--muted,#9DB3AA)')+'">58mm</button>'+
-        '<button id="mtP80" style="border:1px solid var(--line,#243A31);border-radius:8px;padding:6px 12px;cursor:pointer;font-family:inherit;background:'+(p===80?'var(--jade,#45B08F)':'transparent')+';color:'+(p===80?'#06120E':'var(--muted,#9DB3AA)')+'">80mm</button></div>'+
-      '<button id="mtCo" style="width:100%;background:transparent;border:1px solid var(--gold,#C9A24B);color:var(--gold,#C9A24B);border-radius:10px;padding:10px;margin-bottom:10px;font-size:13px;cursor:pointer;font-family:inherit">🔗 Kết nối / đổi máy in Bluetooth</button>'+
+        '<span style="font-size:12px;opacity:.85">Máy in WiFi / AirPrint / PDF / máy in giấy A4·A5. Chạy mọi máy, kể cả máy tính &amp; iPhone.</span></button>'+
+      btHtml+
+      (sheet?'':'<button id="mtCo" style="width:100%;background:transparent;border:1px solid var(--gold,#C9A24B);color:var(--gold,#C9A24B);border-radius:10px;padding:11px;margin-bottom:10px;font-size:13.5px;cursor:pointer;font-family:inherit">🔗 Kết nối thêm máy in Bluetooth</button>')+
       '<button id="mtCl" style="width:100%;background:var(--bg3,#18261F);border:1px solid var(--line,#243A31);color:var(--text,#E8F0EC);border-radius:10px;padding:11px;font-size:14px;cursor:pointer;font-family:inherit">Đóng</button>';
     ov.appendChild(c); document.body.appendChild(ov);
     const close=function(){ if(ov.parentNode) ov.parentNode.removeChild(ov); };
+    const rerender=function(){ close(); self.menu(title,browserFn,buildFn,opt); };
     ov.addEventListener('click',function(e){ if(e.target===ov) close(); });
     c.querySelector('#mtCl').onclick=close;
-    c.querySelector('#mtP58').onclick=function(){ self.setPaper(58); close(); self.menu(title,browserFn,buildFn,opt); };
-    c.querySelector('#mtP80').onclick=function(){ self.setPaper(80); close(); self.menu(title,browserFn,buildFn,opt); };
-    c.querySelector('#mtCo').onclick=function(){ close(); self.connect().then(function(){ self.menu(title,browserFn,buildFn,opt); }); };
+    c.querySelectorAll('.mtPp').forEach(function(b){ b.onclick=function(){ self.setPaper(b.getAttribute('data-p')); rerender(); }; });
     c.querySelector('#mtPb').onclick=function(){ close(); if(browserFn) browserFn(); };
-    c.querySelector('#mtBb').onclick=function(){ close(); self.printDoc(buildFn,opt); };
+    const co=c.querySelector('#mtCo'); if(co) co.onclick=function(){ close(); self.connect().then(function(){ self.menu(title,browserFn,buildFn,opt); }); };
+    const bb=c.querySelector('#mtBb'); if(bb) bb.onclick=function(){ close(); self.printDoc(buildFn,opt); };
+    c.querySelectorAll('.mtPick').forEach(function(b){ b.onclick=function(){ self.selectPrinter(b.getAttribute('data-id')); close(); self.printDoc(buildFn,opt); }; });
+    c.querySelectorAll('.mtDel').forEach(function(b){ b.onclick=function(ev){ ev.stopPropagation(); self.removePrinter(b.getAttribute('data-id')); rerender(); }; });
   }
 };
 
@@ -2371,6 +2428,8 @@ CP.testCanvas=function(W){
 /* ---- Bộ định tuyến in: trình duyệt / Bluetooth / hỏi mỗi lần ---- */
 function cafePrintMode(){ const p=(st().settings||{}).printer; return (p==='bluetooth'||p==='ask')?p:'browser'; }
 function cafePrint(cfg){
+  const _paper=(st().settings||{}).paperWidth;
+  if(paperIsSheet(_paper)){ doPrintHTMLRaw(cfg.html()); return; }   // khổ A4/A5 → luôn in qua trình duyệt (máy in giấy trên máy tính)
   const mode=cafePrintMode();
   if(mode==='browser'){ doPrintHTMLRaw(cfg.html()); return; }
   if(mode==='bluetooth'){ CP.printDoc(cfg.build,{drawer:!!cfg.drawer}); return; }
@@ -2384,6 +2443,7 @@ function cafePrint(cfg){
 function printerMenu(){ CP.menu('Máy in — kết nối & in thử',function(){ doPrintHTMLRaw(buildReceiptHTML(_demoOrder())); },function(W){ return CP.testCanvas(W); }); }
 function _demoOrder(){ return {code:'HD-DEMO',ts:Date.now(),type:'takeaway',tableId:null,items:[{name:'Trà sữa trân châu',sizeName:'L',sugar:'70%',ice:'Ít đá',toppings:[{name:'Trân châu'}],qty:2,lineTotal:74000,note:''}],subtotal:74000,discountAmount:4000,vat:0,vatPct:8,total:70000,method:'cash',given:100000,change:30000,pointsEarned:7}; }
 window.CP=CP;
+try{ CP.restore(); }catch(e){}
 
 window.__btReceiptFromOrder=async(o)=>{ await CP.printDoc(function(W){ return CP.receiptCanvas(o,W); }); };
 
@@ -3212,11 +3272,26 @@ function renderLocked(acc,user){
 }
 function showExpiryBanner(acc){
   const b=$('expiry-banner'); if(!b)return;
-  if(acc.admin||!acc.until){b.style.display='none';return;}
-  const days=Math.ceil((acc.until.getTime()-Date.now())/86400000);
-  if(days<=7&&days>=0){ b.style.display='flex';
-    b.innerHTML='<span>'+(acc.trial?'🎁 Dùng thử còn ':'⏳ Tài khoản còn ')+days+' ngày (tới '+fmtDateRaw(acc.until)+').</span><button onclick="openRenew()">💳 Gia hạn</button>'; }
-  else b.style.display='none';
+  // Quản trị không phải khách thuê -> không hiện thanh hạn dùng
+  if(acc&&acc.admin){ b.style.display='none'; return; }
+  // LUÔN hiện thanh trạng thái: ngày hết hạn + nút gia hạn (bỏ giới hạn chỉ hiện khi ≤7 ngày)
+  b.style.display='flex'; b.classList.remove('warn');
+  if(!acc||!acc.until){
+    b.innerHTML='<span>♾️ Tài khoản không giới hạn thời gian.</span><button onclick="openRenew()">💳 Gia hạn</button>';
+    return;
+  }
+  const _u=(acc.until&&acc.until.toDate)?acc.until.toDate():new Date(acc.until);
+  const _t=_u.getTime();
+  if(isNaN(_t)){ b.innerHTML='<span>✅ Tài khoản đang hoạt động.</span><button onclick="openRenew()">💳 Gia hạn</button>'; return; }
+  const days=Math.ceil((_t-Date.now())/86400000);
+  const dstr=fmtDateRaw(acc.until);
+  if(days<0){
+    b.classList.add('warn');
+    b.innerHTML='<span>⛔ Tài khoản đã hết hạn ngày '+dstr+'.</span><button onclick="openRenew()">💳 Gia hạn ngay</button>';
+  }else{
+    if(days<=7) b.classList.add('warn');
+    b.innerHTML='<span>'+(acc.trial?'🎁 Dùng thử':'✅ Đã kích hoạt')+' — còn <b>'+days+' ngày</b> · hết hạn '+dstr+'</span><button onclick="openRenew()">💳 Gia hạn</button>';
+  }
 }
 
 /* ---- Gia hạn bằng QR (nội dung CK = email) ---- */
