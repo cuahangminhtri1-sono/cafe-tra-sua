@@ -341,7 +341,7 @@ table.tb tr:last-child td{border-bottom:0}
 
 <!-- ============ 1. ĐĂNG NHẬP ============ -->
 <div id="auth-screen">
-  <div style="position:absolute;top:10px;right:12px;font:700 11px/1 monospace;color:#C9A24B;letter-spacing:.5px">v2026.07.12-C</div>
+  <div style="position:absolute;top:10px;right:12px;font:700 11px/1 monospace;color:#C9A24B;letter-spacing:.5px">v2026.10.15-C</div>
   <div class="auth-card">
     <div class="auth-logo">🧋</div>
     <h1>Quản Lý Cafe · Trà Sữa</h1>
@@ -699,7 +699,7 @@ function renderPin(){
   const isAdm = !!window.__CAFE_ADMIN__;
   const ownerBar =
     '<div class="ownerbar app-header">'+
-      '<span class="muted tiny" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(window.__CAFE_EMAIL__||'')+' <b style="color:#C9A24B">v2026.07.12-C</b></span>'+
+      '<span class="muted tiny" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(window.__CAFE_EMAIL__||'')+' <b style="color:#C9A24B">v2026.10.15-C</b></span>'+
       (isAdm ? '<button class="btn sm gold" onclick="openAdmin()">👑 Khách</button>'+
                '<button class="btn sm gold" onclick="openBilling()">💳 Nhận tiền</button>' : '')+
       (canInstallApp() ? '<button class="btn sm ghost" onclick="if(window.tsInstallApp)window.tsInstallApp()">📲 Cài App</button>' : '')+
@@ -713,7 +713,7 @@ function renderPin(){
     '<div class="pindots" id="pindots"></div>'+
     '<div class="keys" id="keys"></div>'+
     '<div class="muted tiny" style="margin-top:14px">Chủ quán: 1234 · Thu ngân: 1111</div>'+
-    (isAdm ? '<div class="muted tiny" style="margin-top:10px;color:var(--gold-l)">Bạn đang đăng nhập bằng tài khoản QUẢN TRỊ — bấm 👑 Khách phía trên để gia hạn cho khách thuê.</div>' : '')+
+    (isAdm ? '<div class="muted tiny" style="margin-top:10px;color:var(--gold-l)">Bạn đang đăng nhập bằng tài khoản QUẢN TRỊ — bấm 👑 Khách phía trên để XEM khách thuê (duyệt đơn · gia hạn làm trong app Quản Trị).</div>' : '')+
     '</div></div>';
   const keys=$('#keys');
   ['1','2','3','4','5','6','7','8','9','del','0','ok'].forEach(k=>{
@@ -725,7 +725,7 @@ function renderPin(){
   });
   drawDots();
 }
-function drawDots(){ const n=Math.max(4,_pin.length); let h=''; for(let i=0;i<n;i++) h+='<i class="'+(i<_pin.length?'f':'')+'"></i>'; $('#pindots').innerHTML=h; }
+function drawDots(){ const n=Math.max(4,_pin.length); let h=''; for(let i=0;i<n;i++) h+='<i class="'+(i<_pin.length?'f':'')+'"></i>'; const _pd=$('#pindots'); if(_pd)_pd.innerHTML=h; }   /* [BV4] cổng PIN đã đóng thì thôi */
 /* CỨU HỘ: nếu danh sách nhân viên RỖNG (đám mây chưa seed được) thì chủ quán
    bị khoá ngoài vĩnh viễn — nhập PIN nào cũng "sai". Dựng lại Chủ quán 1234. */
 function ensureStaff(){
@@ -742,6 +742,7 @@ function ensureStaff(){
   return false;
 }
 function tryLogin(){
+  if(!$('#pindots'))return;   /* [BV4] lần gọi thứ hai khi cổng PIN đã đóng ⇒ bỏ qua (trước đây báo "Sai mã PIN" oan + văng lỗi JS) */
   const cuuHo=ensureStaff();
   if(cuuHo) toast('Đã khôi phục nhân viên mặc định — PIN Chủ quán 1234','warn');
   const list=st().staff||[];
@@ -1919,7 +1920,8 @@ function exportData(){ const data={__trosafe:true,version:st().meta.version,expo
   setTimeout(()=>URL.revokeObjectURL(a.href),3000); toast('Đã tạo file sao lưu','ok');
 }
 function importDataPick(){ $('#_importFile').click(); }
-function doImport(e){ const file=e.target.files[0]; if(!file) return; const rd=new FileReader();
+function doImport(e){ const file=e.target.files[0]; if(!file) return; if(window.BV4&&window.BV4.chanNhap('cafe')){ try{ e.target.value=''; }catch(_){} return; }   /* [BV4] dùng thử chưa nhập file */
+  const rd=new FileReader();
   rd.onload=()=>{ try{ const data=JSON.parse(rd.result); if(!data.__trosafe){ toast('File không hợp lệ','err'); return; }
     confirmBox('Khôi phục sẽ GHI ĐÈ toàn bộ dữ liệu hiện tại. Tiếp tục?',async()=>{
       S.COLLECTIONS.forEach(c=>{ if(data[c]!==undefined) st()[c]=data[c]; });
@@ -3201,10 +3203,11 @@ window.doLogout=async()=>{ detachAll(); try{ await signOut(auth); }catch(e){} };
 function _hanInfo(d){
   if(!d)return null;
   if(d.active===false)return{ok:false,reason:'locked'};
+  if(d.vinhVien===true)return{ok:true};   /* [BV4] Rules: vinhVien:true là qua, bất kể ngày ghi kèm (trước đây ngày cũ ⇒ khoá oan khách vĩnh viễn) */
   if(d.paidUntil){ const until=d.paidUntil.toDate?d.paidUntil.toDate():new Date(d.paidUntil);
     if(!isNaN(until)&&until.getTime()<Date.now())return{ok:false,reason:'expired',until,trial:!!d.trial};
     return{ok:true,until,trial:!!d.trial}; }
-  if(d.active===true)return{ok:true};   // paidUntil rỗng = admin cấp VĨNH VIỄN
+  if(d.active===true)return{ok:false,reason:'nohan'};   /* [BV4] không ngày + không vinhVien: máy chủ CHẶN — trước đây app coi là vĩnh viễn nên khách vào app trống trơn, lưu gì cũng bị chối */
   return null;
 }
 async function checkAccount(uid){
@@ -3214,7 +3217,7 @@ async function checkAccount(uid){
     // ① GIẤY PHÉP RIÊNG CỦA APP NÀY — accounts/{uid}/lic/cafe
     try{
       const L=await getDoc(licRef(uid,MA_APP));
-      if(L.exists()){ const r=_hanInfo(L.data()); if(r)return r; }
+      if(L.exists()){ const r=_hanInfo(L.data()); if(r)return bv4Gac(uid,r,L); }   /* [BV4] gác ngoại tuyến */
     }catch(e){console.warn('đọc lic lỗi:',e&&e.code);}
 
     // ② TƯƠNG THÍCH KHÁCH CŨ — CHỈ khi doc gốc THẬT SỰ mang paidUntil kiểu cũ.
@@ -3225,9 +3228,24 @@ async function checkAccount(uid){
     if(a.migrated===true)return{ok:false,reason:'pending'};
     if(!('paidUntil' in a))return{ok:false,reason:'pending'};
     const r=_hanInfo(a);
-    return r||{ok:false,reason:'pending'};
+    return bv4Gac(uid,r||{ok:false,reason:'pending'},snap);   /* [BV4] gác ngoại tuyến */
   }catch(e){console.error('checkAccount',e);return{ok:false,reason:'error'};}
 }
+/* ═══ [BV4] nối app Cafe với khối BẢO VỆ GIẤY PHÉP dùng chung (cuối trang). Không có khối đó thì app chạy y như cũ. ═══ */
+async function bv4Hoi(uid){   /* 1 lượt đọc nhỏ trong kho cafe_: đọc được ⇒ giấy phép còn hạn THẬT theo giờ máy chủ */
+  try{ if(!uid)return ''; const s=await getDoc(doc(db,'users',uid,'cafe_gac','x')); return (s&&s.metadata&&s.metadata.fromCache===false)?'ok':''; }
+  catch(e){ return (e&&e.code==='permission-denied')?'chan':''; }
+}
+function bv4Gac(uid,r,snap){ try{ return window.BV4?window.BV4.gac('cafe',uid,r,snap,function(){ return bv4Hoi(uid); }):r; }catch(e){ return r; } }
+function bv4Ctx(){ return { app:'cafe', ver:'10.12.0', auth:auth, db:db, fs:{ doc:doc, getDoc:getDoc, setDoc:setDoc, serverTimestamp:serverTimestamp },
+  moGiaHan:function(){ try{ window.openRenew(); }catch(e){} }, dangXuat:function(){ try{ window.doLogout(); }catch(e){} },
+  thuLai:async function(){ const u=auth.currentUser; if(!u)return false; const ok=await tryStartTrial(u.uid); if(ok)location.reload(); return ok; } }; }
+function bv4Khoa(acc){ try{ detachAll(); }catch(e){} _ready=false; showScreen('locked'); renderLocked(acc,auth.currentUser); {const _hf=$('hotlineFab');if(_hf)_hf.style.display='none';} }
+function bv4BiChoi(){ try{ const u=UID; if(!u||isAdmin()||!window.BV4)return;
+  window.BV4.biChoi('cafe',{ uid:u, hoi:function(){ return bv4Hoi(u); }, docLic:async function(){ const L=await getDoc(licRef(u,MA_APP)); return L.exists()?L.data():null; }, khoa:bv4Khoa }); }catch(e){} }
+async function bv4KiemHan(){ try{ if(!UID||isAdmin())return; const acc=await checkAccount(UID); if(acc&&!acc.ok&&acc.reason!=='error')bv4Khoa(acc); }catch(e){} }
+function bv4LoiNghe(e,a,b){ if(e&&e.code==='permission-denied'){ bv4BiChoi(); return; } console.error(a,b,e); }
+const _bv4GD=getDoc, _bv4GDS=getDocs;
 async function tryStartTrial(uid){
   // ① Doc gốc: TUYỆT ĐỐI không được chứa paidUntil (Rules mới cấm — hạn nằm ở lic/)
   try{
@@ -3238,11 +3256,12 @@ async function tryStartTrial(uid){
     }
   }catch(e){/* đã có rồi thì bỏ qua */}
   // ② Giấy phép dùng thử RIÊNG app này — Rules chỉ cho TẠO 1 lần ⇒ không reset thử được
+  let _bv4Kt=''; try{ if(window.BV4)_bv4Kt=await window.BV4.giuKhoa(bv4Ctx()); }catch(e){}   /* [BV4] giữ khoá hộp thư trước (Rules VÁ LỖ Z7) */
   try{ const until=new Date(Date.now()+TRIAL_DAYS*86400000);
     await setDoc(licRef(uid,MA_APP),{trial:true,trialUsed:true,active:true,paidUntil:until,startedAt:serverTimestamp()});
-    return true; }catch(e){console.error('trial',e);return false;}
+    return true; }catch(e){console.error('trial',e); try{ if(window.BV4)window.BV4.baoThuLoi(bv4Ctx(),_bv4Kt); }catch(_){} return false;}
 }
-window.startTrialNow=async()=>{ if(!auth.currentUser)return; const ok=await tryStartTrial(auth.currentUser.uid); if(ok)location.reload(); else cToast('❌ Chưa mở được dùng thử. Tải lại trang.'); };
+window.startTrialNow=async()=>{ if(!auth.currentUser)return; const ok=await tryStartTrial(auth.currentUser.uid); if(ok)location.reload(); else if(!window.__bv4DaBao) cToast('❌ Chưa mở được dùng thử. Tải lại trang.'); };
 async function loadBilling(){ try{const s=await getDoc(doc(db,'billing','info'));if(s.exists())BILLING=s.data();}catch(e){BILLING=null;} }
 function renewBank(){ var _b=BILLING||{}; var bin=_b.bin||_b.bankBin; if(bin&&_b.account)return{bin:bin,bankName:_b.bankName||'',account:_b.account,accName:_b.accName||''}; return null; }
 function renewPrice(){ return priceFor('cafe'); }
@@ -3260,15 +3279,18 @@ function renderLocked(acc,user){
     mg=(acc.trial?'Cảm ơn bạn đã dùng thử! ':'')+'Tài khoản'+(acc.until?(' hết hạn ngày '+fmtDateRaw(acc.until)):'')+'. Gia hạn để tiếp tục — chỉ '+fmt(renewPrice())+'/tháng.'; }
   else if(acc.reason==='error'){ ic='⚠️';tt='Không kiểm tra được tài khoản';mg='Mạng có thể bị gián đoạn. Vui lòng tải lại trang.'; }
   else if(acc.reason==='locked'){ tt='Tài khoản đã bị khoá';mg='Tài khoản'+(mail?(' ('+mail+')'):'')+' hiện bị khoá. Liên hệ chủ phần mềm.'; }
+  else if(window.BV4&&window.BV4.loi(acc)){ const _x=window.BV4.loi(acc); ic=_x.ic; tt=_x.tt; mg=_x.mg; }   /* [BV4] chưa đặt hạn · cần nối mạng · ngày giờ máy sai */
   else{ ic='🎁';tt='Bắt đầu dùng thử miễn phí';mg='Bạn được dùng thử miễn phí '+TRIAL_DAYS+' ngày. Bấm nút bên dưới để bắt đầu.'; }
   $('locked-icon').textContent=ic; $('locked-title').textContent=tt; $('locked-msg').textContent=mg;
   let btns='';
   if(acc.reason==='pending')btns+='<button class="lk-pay" onclick="startTrialNow()">🎁 Bắt đầu dùng thử '+TRIAL_DAYS+' ngày</button>';
-  else if(acc.reason==='expired')btns+='<button class="lk-pay" onclick="openRenew()">💳 Gia hạn ngay</button>';
+  else if(acc.reason==='expired'||acc.reason==='nohan')btns+='<button class="lk-pay" onclick="openRenew()">💳 Gia hạn ngay</button>';
   else if(acc.reason==='error')btns+='<button class="lk-pay" onclick="location.reload()">🔄 Tải lại trang</button>';
+  else if(acc.reason==='canmang')btns+='<button class="lk-pay" onclick="location.reload()">🔄 Thử lại</button>';   /* [BV4] */
   btns+='<a href="tel:0977823979" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#16a34a;color:#fff;border-radius:10px;padding:13px;font-weight:800;text-decoration:none;font-size:15px;margin-top:8px">📞 Gọi hotline hỗ trợ: 0977 823 979</a>';
   btns+='<button class="lk-btn" onclick="doLogout()">Đăng xuất</button>';
   $('locked-actions').innerHTML=btns;
+  try{ if(window.BV4)window.BV4.tuMo('cafe',acc,UID,function(){ return bv4Hoi(UID); },function(){ const lv=$('locked-view'); return !!(lv&&lv.style.display!=='none'); }); }catch(e){}   /* [BV4] màn cần nối mạng: có mạng là tự vào lại */
 }
 function showExpiryBanner(acc){
   const b=$('expiry-banner'); if(!b)return;
@@ -3399,7 +3421,7 @@ function wErr(e){
   if(e && (e.code==='permission-denied' || /permission/i.test(e.message||''))){
     if(_denied) return; _denied=true;
     try{ if(window.__cafeUI&&window.__cafeUI.toast) window.__cafeUI.toast('⛔ Tài khoản hết hạn — không lưu được. Vui lòng gia hạn.'); }catch(x){}
-    setTimeout(async()=>{ try{ const acc=await checkAccount(UID); if(!acc.ok){ detachAll(); showScreen('locked'); renderLocked(acc, auth.currentUser); } }catch(x){} }, 400);
+    setTimeout(async()=>{ try{ const acc=await checkAccount(UID); if(!acc.ok){ bv4Khoa(acc); } else bv4BiChoi(); }catch(x){} }, 400);   /* [BV4] giờ máy nói còn hạn mà máy chủ chối ⇒ xét lý do thật */
   } else console.error('write', e);
 }
 async function syncCol(col){
@@ -3425,6 +3447,13 @@ async function syncCol(col){
 }
 
 async function initialLoad(){
+  /* [BV4] Chỉ coi là "tài khoản mới, đẩy dữ liệu mẫu lên" khi MÁY CHỦ xác nhận trống. Máy mới mà mạng rớt giữa chừng thì các
+     lượt đọc trả RỖNG từ bộ nhớ đệm ⇒ bản cũ tưởng tài khoản mới, đẩy dữ liệu mẫu ĐÈ lên dữ liệu thật khi có mạng lại (PIN chủ
+     quán về 1234, tên quán về mặc định, chèn hàng mẫu). Hai hàm đọc dưới đây che tên hàm gốc CHỈ trong thân hàm này. */
+  let _bv4May=true, _bv4Choi=false;
+  const _bv4Xet=(s)=>{ try{ if(!s||!s.metadata||s.metadata.fromCache!==false)_bv4May=false; }catch(e){ _bv4May=false; } return s; };
+  const _bv4Loi=(e)=>{ _bv4May=false; if(e&&e.code==='permission-denied')_bv4Choi=true; throw e; };
+  const getDoc=(r)=>_bv4GD(r).then(_bv4Xet,_bv4Loi), getDocs=(q)=>_bv4GDS(q).then(_bv4Xet,_bv4Loi);
   const state = ST.freshSeed ? ST.freshSeed() : ST.seed();
   ST.state = state;
   for(const col of SINGLE){
@@ -3455,14 +3484,15 @@ async function initialLoad(){
     rebuildHeavy(col);
   }
   let hasSettings=false; try{ const s=await getDoc(dpathSingle('settings')); hasSettings=s.exists(); }catch(e){}
-  if(!hasSettings && !hadAny){ await seedToCloud(state); }
+  if(_bv4Choi) throw new Error('bv4-bi-choi');   /* [BV4] máy chủ chối đọc ⇒ không nạp dở dang, không đẩy mẫu */
+  if(!hasSettings && !hadAny){ if(!_bv4May) throw new Error('bv4-chua-co-du-lieu'); await seedToCloud(state); }   /* [BV4] */
 
   /* ── CỨU HỘ CỔNG PIN ─────────────────────────────────────────────────────
      Ca thật đã gặp: đám mây CÓ settings nhưng kho cafe_staff RỖNG (seed lần trước
      hỏng dở) -> onSnapshot xoá sạch state.staff -> nhập PIN nào cũng "sai".
      Phải kiểm ĐÁM MÂY, không được chỉ kiểm bộ nhớ (bộ nhớ vẫn còn seed nên không rỗng). */
   let mayRongStaff=true;
-  try{ const qs=await getDocs(cpath('staff')); mayRongStaff=qs.empty; }catch(e){}
+  try{ const qs=await getDocs(cpath('staff')); mayRongStaff=qs.empty&&!!qs.metadata&&qs.metadata.fromCache===false; }catch(e){ mayRongStaff=false; }   /* [BV4] chỉ đẩy lại nhân viên khi MÁY CHỦ xác nhận kho trống */
 
   if(!Array.isArray(state.staff) || state.staff.filter(s=>s&&s.active).length===0){
     const seedStaff=(ST.seed?(ST.seed().staff||null):null);
@@ -3513,7 +3543,7 @@ function attachListeners(){
   SINGLE.forEach(col=>{ const un=onSnapshot(dpathSingle(col),snap=>{
     if(snap.metadata.hasPendingWrites) return;
     if(snap.exists()){ ST.state[col]=Object.assign(ST.state[col]||{},snap.data()); rebuildShadow(col); if(_ready) reboot(); }
-  },e=>console.error('snap',col,e)); _unsubs.push(un); });
+  },e=>bv4LoiNghe(e,'snap',col)); _unsubs.push(un); });
 
   LIGHT.forEach(col=>{ const un=onSnapshot(cpath(col),snap=>{
     if(snap.metadata.hasPendingWrites) return;
@@ -3527,7 +3557,7 @@ function attachListeners(){
       if(cur.length){ _shadow['staff']=new Map(); try{ markDirty('staff'); }catch(e){} return; }
     }
     ST.state[col]=rows; rebuildShadow(col); if(_ready) reboot();
-  },e=>console.error('snap',col,e)); _unsubs.push(un); });
+  },e=>bv4LoiNghe(e,'snap',col)); _unsubs.push(un); });
 
   /* Kho nặng: chỉ nghe realtime trong cửa sổ + bản ghi còn mở -> rẻ mà vẫn đồng bộ tức thời */
   HCOLS.forEach(col=>{
@@ -3535,13 +3565,13 @@ function attachListeners(){
     const u1=onSnapshot(query(cpath(col), where(tf,'>=',_liveFrom[col])), snap=>{
       if(snap.metadata.hasPendingWrites) return;
       _parts[col].win=toMap(docsOf(snap)); rebuildHeavy(col); if(_ready) reboot();
-    }, e=>console.error('snap-win',col,e));
+    }, e=>bv4LoiNghe(e,'snap-win',col));
     _unsubs.push(u1);
     if(OPENQ[col]){
       const u2=onSnapshot(query(cpath(col), where('status','==',OPENQ[col])), snap=>{
         if(snap.metadata.hasPendingWrites) return;
         _parts[col].open=toMap(docsOf(snap)); rebuildHeavy(col); if(_ready) reboot();
-      }, e=>console.error('snap-open',col,e));
+      }, e=>bv4LoiNghe(e,'snap-open',col));
       _unsubs.push(u2);
     }
   });
@@ -3643,7 +3673,10 @@ onAuthStateChanged(auth, async user=>{
     /* Nạp dữ liệu — HỎNG cũng PHẢI hiện app, không được đứng im ở màn đăng nhập.
        Trước đây load() ném lỗi là showScreen('app') không chạy -> nhìn y hệt "sai mật khẩu". */
     try{ await window.__STORE__.load(); }
-    catch(e){ console.error('STORE.load',e);
+    catch(e){
+      if(e&&e.message==='bv4-chua-co-du-lieu'){ showScreen('locked'); renderLocked({ok:false,reason:'canmang',ly:'dau'},user); return; }   /* [BV4] máy mới + mất mạng: không mở bằng dữ liệu mẫu */
+      if(e&&e.message==='bv4-bi-choi'){ showScreen('locked'); renderLocked({ok:false,reason:'error'},user); bv4BiChoi(); return; }   /* [BV4] máy chủ chối đọc ⇒ xét lý do thật rồi khoá */
+      console.error('STORE.load',e);
       try{ if(window.__cafeUI&&window.__cafeUI.toast) window.__cafeUI.toast('⚠️ Tải dữ liệu lỗi — app vẫn mở, thử tải lại trang.'); }catch(x){} }
     showScreen('app');
     netBadge();
@@ -3652,10 +3685,12 @@ onAuthStateChanged(auth, async user=>{
     window.__CAFE_ADMIN__ = !!acc.admin; window.__CAFE_EMAIL__ = user.email||'';
     {const _hf=$('hotlineFab');if(_hf)_hf.style.display=acc.admin?'none':'flex';}
     showExpiryBanner(acc);
+    try{ if(window.BV4){ window.BV4.datAcc('cafe',acc); if(!acc.admin){ window.BV4.henHetHan('cafe',acc.until?new Date(acc.until).getTime():0,bv4KiemHan); window.BV4.nhip('cafe',function(){ return UID; },function(){ return bv4Hoi(UID); },bv4BiChoi); } } }catch(e){}   /* [BV4] */
     // render cổng PIN nhân viên với dữ liệu đã tải
     try{ if(window.__cafeUI&&window.__cafeUI.renderPin) window.__cafeUI.renderPin(); }catch(e){}
   } else {
     UID=null; window.__CAFE_UID__=null; detachAll(); _ready=false;
+    try{ if(window.BV4){ window.BV4.datAcc('cafe',null); window.BV4.henHetHan('cafe',0); } }catch(e){}   /* [BV4] */
     try{ if(window.__cafeUI&&window.__cafeUI.relock) window.__cafeUI.relock(); }catch(e){}
     {const _hf=$('hotlineFab');if(_hf)_hf.style.display='none';}
     showScreen('auth');
@@ -3895,7 +3930,7 @@ if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
 <script type="module">
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-const APP_ID = "cafe", APP_VERSION = "2.1";
+const APP_ID = "cafe", APP_VERSION = "2.2";
 const FB = { apiKey:"AIzaSyA_kjQ-CdASRkf50Glz3kQajlkD5qGWC4k", authDomain:"so-no-cc57a.firebaseapp.com",
   projectId:"so-no-cc57a", storageBucket:"so-no-cc57a.firebasestorage.app",
   messagingSenderId:"571694791559", appId:"1:571694791559:web:8e409728a520e2d370b122" };
@@ -4139,14 +4174,14 @@ import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePasswor
     const fas = await Promise.all(bases.map(b => import(`${b}/firebase-app.js`)));
     let idx = -1;
     for (let i = 0; i < 120 && idx < 0; i++) {
-      idx = fas.findIndex(fa => fa.getApps().length > 0);
+      idx = fas.findIndex(fa => fa.getApps().some(a => a.name !== 'errlog' && a.name !== 'pub'));   /* [BV4] chờ đúng app chính (có tên) */
       if (idx < 0) await sleep(100);
     }
     if (idx < 0) return;
     const base = bases[idx], fa = fas[idx];
     const { getAuth, onAuthStateChanged } = await import(`${base}/firebase-auth.js`);
     const { getFirestore, doc, getDoc }   = await import(`${base}/firebase-firestore.js`);
-    const app = fa.getApp(), auth = getAuth(app), fdb = getFirestore(app);
+    const app = fa.getApps().find(a => a.name !== 'errlog' && a.name !== 'pub') || fa.getApp(), auth = getAuth(app), fdb = getFirestore(app);   /* [BV4] */
 
     onAuthStateChanged(auth, async (u) => {
       if (!u) return;
@@ -4398,5 +4433,373 @@ import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, serv
   setTimeout(tick,400);
 })();
 </script>
+<!-- ═══ [BV4] BẢO VỆ GIẤY PHÉP — khối dùng chung 4 app: Cafe · TrọSafe · NhàXe Pro · Xe hợp đồng (bản 2026-10-15). Không sửa tay. ═══ -->
+<script>
+/* Việc của khối này — app nào cũng gọi vào đây; khối có lỗi gì thì app chạy y như cũ (không khoá oan ai):
+   1) GÁC NGOẠI TUYẾN: vá lỗ "hết hạn rồi TẮT MẠNG + CHỈNH LÙI NGÀY GIỜ là vào dùng tiếp" (giống Sổ Nợ SN6). Máy nhớ 2 mốc
+      (localStorage 'bv4_gac_<app>'): t = giờ máy mới nhất từng thấy · s = lần gần nhất MÁY CHỦ xác nhận giấy phép còn hạn.
+      Chỉ xét khi giấy phép đọc từ BẢN LƯU TRONG MÁY: giờ máy lùi hơn 2 tiếng ⇒ 'lui' · quá 7 ngày chưa được xác nhận ⇒ 'lau'.
+   2) MÁY CHỦ CHỐI ⇒ KHOÁ ĐÚNG LÝ DO: đang mở app mà hết hạn / bị khoá / ngày giờ máy sai thì hiện màn khoá kèm lý do thật,
+      thay vì báo "Rules chưa cập nhật" hay để khách bấm hoài không lưu được. Tới đúng giờ hết hạn cũng tự khoá.
+   3) KHOÁ HỘP THƯ DÙNG THỬ (trialKeys — Rules VÁ LỖ Z7): mỗi hộp thư thật chỉ dùng thử 1 lần; công tắc xác minh email bật
+      thì gửi thư xác minh và có nút "Tôi đã xác minh". Công thức hộp thư thật y hệt Rules + app Sổ Nợ.
+   4) CHẶN NHẬP FILE SAO LƯU khi đang dùng thử: chặn đường "xuất dữ liệu → tạo email mới → dùng thử → nhập lại".
+   5) BẢNG 👑 NHÚNG CHỈ CÒN XEM: duyệt / gia hạn / khoá / vĩnh viễn / đổi tài khoản nhận tiền chỉ làm ở app Quản Trị
+      (có nhập lại mật khẩu, nhật ký, sổ doanh thu đúng giá). */
+(function(){
+  'use strict';
+  if (window.BV4) return;
+  var NGAY = 86400000, LUI = 2 * 3600000, NGAY_NGOAI = 7, HOT = '0977 823 979', HOT_SO = '0977823979';
+  var QT = 'https://cuahangminhtri1-sono.github.io/admin/';
+
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]; }); }
+  function coHan(p, ms, md){ return Promise.race([ p, new Promise(function(z){ setTimeout(function(){ z(md); }, ms); }) ]); }
+  function bao(m){
+    try{
+      var x = document.getElementById('bv4-bao');
+      if(!x){ x = document.createElement('div'); x.id = 'bv4-bao';
+        x.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:2147483600;background:#111826;color:#fff;padding:11px 16px;border-radius:10px;font:600 13.5px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;max-width:88%;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.4);transition:opacity .4s';
+        document.body.appendChild(x); }
+      x.textContent = m; x.style.opacity = '1'; x.style.display = 'block';
+      clearTimeout(x._t); x._t = setTimeout(function(){ x.style.opacity = '0'; }, 3800);
+    }catch(e){}
+  }
+
+  /* ───────── 1) GÁC NGOẠI TUYẾN ───────── */
+  function tenKhoa(app){ return 'bv4_gac_' + app; }
+  function docMoc(app){
+    var s; try{ s = localStorage.getItem(tenKhoa(app)); }catch(e){ return null; }            /* máy không cho dùng bộ nhớ ⇒ bỏ qua hẳn */
+    try{ var o = JSON.parse(s || '{}'); return (o && typeof o === 'object' && !Array.isArray(o)) ? o : {}; }catch(e){ return {}; }
+  }
+  function ghiMoc(app, uid, xacNhan){
+    try{
+      var o = docMoc(app); if(!o || !uid) return;
+      var g = (o[uid] && typeof o[uid] === 'object') ? o[uid] : {}, now = Date.now();
+      if(xacNhan){ g.t = now; g.s = now; }
+      else if(!(Number(g.t) >= now)) g.t = now;                                              /* mốc t chỉ tiến, không bao giờ lùi */
+      o[uid] = g;
+      var ks = Object.keys(o);
+      if(ks.length > 20){ ks.sort(function(a, b){ return (Number((o[a] || {}).t) || 0) - (Number((o[b] || {}).t) || 0); }); for(var i = 0; i < ks.length - 20; i++) delete o[ks[i]]; }
+      localStorage.setItem(tenKhoa(app), JSON.stringify(o));
+    }catch(e){}
+  }
+  var HOI = {};
+  function hoiTT(app){ return HOI[app] || (HOI[app] = { luc:0, ok:0 }); }
+  /* Hỏi máy chủ 1 lượt đọc nhỏ (fn do app đưa vào): 'ok' = máy chủ trả lời VÀ cho đọc (giấy phép còn hạn thật) · 'chan' = máy chủ chối · '' = chưa hỏi được */
+  async function hoi(app, uid, fn){
+    try{
+      if(!uid || typeof fn !== 'function') return '';
+      var h = hoiTT(app); h.luc = Date.now();
+      var k = await coHan(Promise.resolve().then(fn), 15000, '');
+      if(k === 'ok'){ h.ok = Date.now(); ghiMoc(app, uid, true); }
+      return k || '';
+    }catch(e){ return ''; }
+  }
+  async function cho(app, uid, fn, ms){
+    var t0 = Date.now();
+    for(var i = 0; i < 8; i++){
+      var k = await hoi(app, uid, fn);
+      if(k === 'ok') return true;
+      if(k === 'chan') return false;
+      var qua = Date.now() - t0;
+      if(qua < 0 || qua + 2500 > ms) return false;
+      await new Promise(function(z){ setTimeout(z, 2500); });
+    }
+    return false;
+  }
+  async function gac(app, uid, r, snap, fn){
+    try{
+      if(!uid || !r) return r;
+      var kq = r;
+      if(r.ok === true && !r.admin){
+        var md = (snap && snap.metadata) || null;
+        if(md && md.fromCache === true){                                                     /* giấy phép đọc từ BẢN LƯU TRONG MÁY */
+          var o = docMoc(app), g = (o && o[uid] && typeof o[uid] === 'object') ? o[uid] : null, now = Date.now();
+          var t = g ? (Number(g.t) || 0) : 0, s = g ? (Number(g.s) || 0) : 0, ly = '';
+          if(t && now < t - LUI) ly = 'lui';
+          else if(s && now - s > NGAY_NGOAI * NGAY) ly = 'lau';
+          if(ly && navigator.onLine !== false && (await cho(app, uid, fn, 9000))) ly = '';    /* máy báo có mạng ⇒ chờ máy chủ xác nhận */
+          if(ly) kq = { ok:false, reason:'canmang', ly:ly };
+        } else if(md && md.fromCache === false) hoi(app, uid, fn);                           /* có mạng ⇒ xin xác nhận để ghi mốc (không chờ) */
+      }
+      ghiMoc(app, uid, false);
+      return kq;
+    }catch(e){ return r; }
+  }
+  /* Đang ở màn "cần nối mạng": 12 giây hỏi máy chủ 1 lần. Xác nhận còn hạn ⇒ tự tải lại để vào app. */
+  var TIM = {};
+  function tuMo(app, acc, uid, fn, conManKhoa){
+    try{
+      if(TIM[app]){ clearInterval(TIM[app]); TIM[app] = null; }
+      if(!acc || acc.reason !== 'canmang' || acc.ly === 'saigio' || !uid) return;
+      TIM[app] = setInterval(async function(){
+        try{
+          if(typeof conManKhoa === 'function' && !conManKhoa()){ clearInterval(TIM[app]); TIM[app] = null; return; }
+          if(navigator.onLine === false) return;
+          var k = await hoi(app, uid, fn);
+          if(k === 'ok'){ clearInterval(TIM[app]); TIM[app] = null; location.reload(); }
+          else if(k === 'chan'){ clearInterval(TIM[app]); TIM[app] = null; }
+        }catch(e){}
+      }, 12000);
+    }catch(e){}
+  }
+
+  /* ───────── 2) MÁY CHỦ CHỐI ⇒ KHOÁ ĐÚNG LÝ DO ───────── */
+  function msHan(v){
+    try{
+      if(v == null || v === '' || typeof v === 'string' || typeof v === 'boolean') return NaN;  /* chuỗi: máy chủ KHÔNG coi là hạn */
+      if(typeof v === 'number') return v;
+      if(typeof v.toMillis === 'function') return v.toMillis();
+      if(typeof v.toDate === 'function') return v.toDate().getTime();
+      if(v instanceof Date) return v.getTime();
+      if(typeof v.seconds === 'number') return v.seconds * 1000;
+      return NaN;
+    }catch(e){ return NaN; }
+  }
+  /* d = giấy phép đọc lại sau khi máy chủ CHỐI. Trả lý do khoá, hoặc null nếu không phải do giấy phép. */
+  function phanLoai(d){
+    if(!d) return { ok:false, reason:'pending' };
+    if(d.active === false) return { ok:false, reason:'locked' };
+    if(d.vinhVien === true) return null;
+    var ms = msHan(d.paidUntil);
+    if(!isFinite(ms)) return { ok:false, reason:'nohan' };
+    if(ms <= Date.now()) return { ok:false, reason:'expired', until:new Date(ms), trial:!!d.trial };
+    return { ok:false, reason:'canmang', ly:'saigio' };                                       /* máy chủ nói hết, giờ máy nói còn ⇒ giờ máy chậm */
+  }
+  var DANG = {};
+  /* o = { uid, hoi:fn, docLic:async()=>data|null, khoa:(acc)=>void, khongPhai:(k)=>void } */
+  async function biChoi(app, o){
+    if(!o || !o.uid || DANG[app]) return;
+    DANG[app] = true;
+    try{
+      var k = await hoi(app, o.uid, o.hoi);                                                   /* hỏi lại cho chắc (1 lượt đọc) */
+      if(k === 'chan'){
+        var d; try{ d = await coHan(Promise.resolve().then(o.docLic), 15000, undefined); }catch(e){ d = undefined; }
+        if(d !== undefined){
+          var acc = phanLoai(d);
+          if(acc && !acc.ok){ try{ o.khoa(acc); }catch(e){} return; }
+        }
+      }
+      if(typeof o.khongPhai === 'function'){ try{ o.khongPhai(k); }catch(e){} }
+    }catch(e){}
+    finally{ setTimeout(function(){ DANG[app] = false; }, 20000); }
+  }
+  /* Tới đúng giờ hết hạn (theo giờ máy) thì app tự xét lại giấy phép; quay lại app sau khi tắt màn hình cũng xét. */
+  var HEN = {};
+  function henHetHan(app, ms, fn){
+    try{
+      if(HEN[app] && HEN[app].t) clearTimeout(HEN[app].t);
+      HEN[app] = null;
+      if(!ms || !isFinite(ms) || typeof fn !== 'function') return;
+      var h = HEN[app] = { u:ms, fn:fn, t:null }, con = ms - Date.now() + 3000;
+      if(con <= 0) h.t = setTimeout(function(){ try{ fn(); }catch(e){} }, 1500);
+      else if(con < 2147000000) h.t = setTimeout(function(){ try{ fn(); }catch(e){} }, con);
+    }catch(e){}
+  }
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden) return;
+    for(var a in HEN){ var h = HEN[a]; if(h && h.u && Date.now() > h.u){ try{ h.fn(); }catch(e){} } }
+  });
+  /* Đang ở trong app: 5 phút xét 1 lần (và khi quay lại app) — quá 3 giờ chưa được máy chủ xác nhận thì hỏi 1 lượt (rẻ: vài lượt đọc/ngày). */
+  var NHIP = {};
+  function nhip(app, layUid, fn, khiChan){
+    try{
+      NHIP[app] = { layUid:layUid, fn:fn, khiChan:khiChan };
+      if(NHIP['_t' + app]) return;
+      var chay = function(){
+        try{
+          var x = NHIP[app]; if(!x) return;
+          var uid = x.layUid && x.layUid(); if(!uid || navigator.onLine === false) return;
+          var h = hoiTT(app), n = Date.now();
+          if(Math.abs(n - h.ok) > 3 * 3600000 && Math.abs(n - h.luc) > 60000)
+            hoi(app, uid, x.fn).then(function(k){ if(k === 'chan' && typeof x.khiChan === 'function') x.khiChan(); });
+        }catch(e){}
+      };
+      NHIP['_t' + app] = setInterval(chay, 5 * 60000);
+      document.addEventListener('visibilitychange', function(){ if(!document.hidden) chay(); });
+    }catch(e){}
+  }
+  /* Lời cho các lý do mới trên màn khoá của app */
+  function loi(acc){
+    if(!acc) return null;
+    if(acc.reason === 'nohan') return { ic:'⚙️', tt:'Tài khoản chưa được đặt hạn', mg:'Giấy phép chưa có ngày hết hạn nên máy chủ chưa mở. Gọi chủ phần mềm (' + HOT + ') để được mở ngay, hoặc bấm Gia hạn.', nut:'giahan' };
+    if(acc.reason !== 'canmang') return null;
+    if(acc.ly === 'lui') return { ic:'🕒', tt:'Ngày giờ trên máy đang sai', mg:'Ngày giờ của máy đang chậm hơn lần dùng trước nên chưa xác nhận được giấy phép. Hãy chỉnh lại ngày giờ cho đúng (bật "Tự động đặt ngày giờ"), nối mạng rồi bấm Thử lại. Dữ liệu của bạn vẫn còn nguyên.', nut:'thulai' };
+    if(acc.ly === 'saigio') return { ic:'🕒', tt:'Ngày giờ trên máy đang sai', mg:'Máy chủ báo giấy phép KHÔNG còn hiệu lực, nhưng ngày giờ trên máy đang chậm nên app tưởng còn hạn. Hãy bật "Tự động đặt ngày giờ" trong cài đặt điện thoại rồi bấm Thử lại. Ngày giờ đã đúng mà vẫn báo thì gọi ' + HOT + '. Dữ liệu của bạn vẫn còn nguyên.', nut:'thulai' };
+    if(acc.ly === 'dau') return { ic:'📶', tt:'Cần nối mạng để tải dữ liệu lần đầu', mg:'Máy này chưa có bản dữ liệu nào để mở khi mất mạng. Hãy bật Wi-Fi hoặc 4G rồi bấm Thử lại — chỉ cần một lần, sau đó dùng ngoại tuyến bình thường. Dữ liệu của bạn trên máy chủ vẫn còn nguyên.', nut:'thulai' };
+    return { ic:'📶', tt:'Cần nối mạng để xác nhận giấy phép', mg:'Máy đã dùng ngoại tuyến quá ' + NGAY_NGOAI + ' ngày. Hãy bật Wi-Fi hoặc 4G rồi bấm Thử lại — chỉ cần nối mạng một lần. Dữ liệu của bạn vẫn còn nguyên.', nut:'thulai' };
+  }
+
+  /* ───────── 3) KHOÁ HỘP THƯ DÙNG THỬ + XÁC MINH EMAIL ───────── */
+  /* c = { app, ver, auth, db, fs:{doc,getDoc,setDoc,serverTimestamp?}, moGiaHan(), dangXuat(), thuLai() } */
+  function hopThuThat(e){                                   /* y hệt Rules hopThuThat() + Sổ Nợ snHopThuThat() */
+    e = String(e || '').toLowerCase(); var p = e.split('@'); if(p.length !== 2) return '';
+    var ten = p[0].split('+')[0], mien = (p[1] === 'googlemail.com') ? 'gmail.com' : p[1];
+    if(mien === 'gmail.com') ten = ten.replace(/\./g, '');
+    return ten + '@' + mien;
+  }
+  async function giuKhoaGoc(c){
+    try{
+      var u = c.auth.currentUser; if(!u) return 'loi';
+      var k = hopThuThat(u.email); if(!k || k.indexOf('/') >= 0) return 'loi';
+      var ref = c.fs.doc(c.db, 'trialKeys', k);
+      try{ await c.fs.setDoc(ref, { uid:u.uid, at:(typeof c.fs.serverTimestamp === 'function' ? c.fs.serverTimestamp() : new Date()) }); return 'ok'; }
+      catch(e){
+        if(!e || e.code !== 'permission-denied') return 'loi';
+        try{ var s = await c.fs.getDoc(ref); return (s.exists() && (s.data() || {}).uid === u.uid) ? 'ok' : 'khac'; }
+        catch(e2){ return (e2 && e2.code === 'permission-denied') ? 'khac' : 'loi'; }
+      }
+    }catch(e){ return 'loi'; }
+  }
+  async function cfgThu(c){
+    try{ var s = await c.fs.getDoc(c.fs.doc(c.db, 'billing', 'config')); var d = (s.exists() && s.data()) || {}; return { xm:d.thuXacMinh === true, bd:d.chanBiDanh !== false }; }
+    catch(e){ return { xm:false, bd:true }; }
+  }
+  var XM = 'bv4_xm_v1';
+  async function guiXacMinh(c, tuDong){
+    var noi = function(m){ if(!tuDong) bao(m); };
+    try{
+      var u = c.auth.currentUser; if(!u || !u.email) return false;
+      if(u.emailVerified){ noi('✅ Email này đã xác minh rồi — bấm "Tôi đã xác minh" nhé.'); return true; }
+      var nho = {}; try{ nho = JSON.parse(localStorage.getItem(XM) || '{}') || {}; }catch(_){ nho = {}; }
+      var truoc = Number(nho[u.uid]) || 0, cach = Date.now() - truoc;
+      if(truoc && cach >= 0 && cach < (tuDong ? 600000 : 60000)){ noi('📨 Thư vừa gửi rồi — đợi 1 phút rồi bấm gửi lại nhé. Nhớ xem cả mục Spam / Thư rác.'); return true; }
+      var m = await import('https://www.gstatic.com/firebasejs/' + (c.ver || '10.12.0') + '/firebase-auth.js');
+      var lc = c.auth.languageCode; try{ c.auth.languageCode = 'vi'; }catch(_){}               /* thư bằng tiếng Việt; gửi xong trả lại như cũ */
+      try{ await m.sendEmailVerification(u); }finally{ try{ c.auth.languageCode = lc; }catch(_){} }
+      try{ var o = {}; o[u.uid] = Date.now(); localStorage.setItem(XM, JSON.stringify(o)); }catch(_){}
+      noi('📨 Đã gửi thư xác minh tới ' + u.email + '. Nhớ xem cả mục Spam / Thư rác.');
+      return true;
+    }catch(e){
+      noi((e && e.code === 'auth/too-many-requests') ? '⏳ Gửi nhiều lần quá — đợi vài phút rồi thử lại nhé.' : '❌ Chưa gửi được thư xác minh. Kiểm tra mạng rồi thử lại.');
+      return false;
+    }
+  }
+  /* 'ok' giữ được khoá · 'khac' hộp thư đã dùng thử ở tài khoản khác · 'bidanh' email "+" · 'xacminh' cần xác minh email · 'loi' */
+  async function giuKhoa(c){
+    var kq = 'loi';
+    try{ kq = await coHan(giuKhoaGoc(c), 12000, 'loi'); }catch(e){ kq = 'loi'; }
+    try{
+      if(kq !== 'khac') return kq;
+      var u = c.auth.currentUser; if(!u || !u.email) return kq;
+      var cf = await coHan(cfgThu(c), 9000, { xm:false, bd:true });
+      if(cf.bd && /\+[^@]*@/.test(u.email)) return 'bidanh';
+      if(!cf.xm) return kq;
+      if(!u.emailVerified){ try{ await u.reload(); }catch(_){} u = c.auth.currentUser; if(!u) return kq; }
+      if(u.emailVerified){ try{ await u.getIdToken(true); }catch(_){} return await coHan(giuKhoaGoc(c), 12000, 'loi'); }
+      await guiXacMinh(c, true);
+      return 'xacminh';
+    }catch(e){ return kq; }
+  }
+  function lop(html){
+    var m = document.getElementById('bv4-lop');
+    if(!m){ m = document.createElement('div'); m.id = 'bv4-lop';
+      m.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(10,14,20,.72);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+      document.body.appendChild(m); }
+    m.innerHTML = '<div style="background:#fff;color:#1b2430;max-width:420px;width:100%;box-sizing:border-box;border-radius:16px;padding:20px 18px;box-shadow:0 12px 40px rgba(0,0,0,.4);max-height:90vh;overflow:auto;line-height:1.5">' + html + '</div>';
+    m.style.display = 'flex';
+    return m;
+  }
+  function dongLop(){ var m = document.getElementById('bv4-lop'); if(m) m.style.display = 'none'; }
+  function nut(id, chu, xanh){ return '<button type="button" id="' + id + '" style="display:block;width:100%;box-sizing:border-box;margin-top:9px;border:' + (xanh ? '0' : '1.5px solid #d5dbe1') + ';border-radius:11px;padding:12px;font-weight:800;font-size:15px;cursor:pointer;background:' + (xanh ? '#16a34a' : '#fff') + ';color:' + (xanh ? '#fff' : '#1b2430') + '">' + chu + '</button>'; }
+  function gan(id, fn){ var b = document.getElementById(id); if(b) b.onclick = function(){ fn(b); }; }
+  async function daXacMinh(c){
+    try{
+      var u = c.auth.currentUser; if(!u) return;
+      try{ await u.reload(); }catch(e){ bao('📶 Chưa kiểm tra được — xem lại mạng rồi bấm lại nhé.'); return; }
+      var x = c.auth.currentUser;
+      if(!x || !x.emailVerified){ alert('✉️ Chưa thấy xác minh.\n\nHãy mở hộp thư ' + (u.email || '') + ' (xem cả mục Spam / Thư rác), bấm vào đường link trong thư, rồi quay lại bấm nút này lần nữa.'); return; }
+      try{ await x.getIdToken(true); }catch(_){}
+      dongLop();
+      if(typeof c.thuLai === 'function') await c.thuLai();                                   /* app tự giữ khoá + mở dùng thử */
+    }catch(e){ bao('❌ Chưa mở được dùng thử. Hãy tải lại trang.'); }
+  }
+  /* Không mở được dùng thử ⇒ nói rõ lý do + lối mua gói (thay cho lời "Chưa mở được dùng thử. Tải lại trang.") */
+  function baoThuLoi(c, kt){
+    try{
+      window.__bv4DaBao = true;
+      var u = c && c.auth && c.auth.currentUser, mail = (u && u.email) || '';
+      var tt, mg, nuts = '';
+      if(kt === 'xacminh'){
+        tt = '✉️ Xác minh email để bắt đầu dùng thử';
+        mg = 'Thư xác minh đã được gửi tới <b>' + esc(mail || 'email của bạn') + '</b>. Hãy mở hộp thư (xem cả mục <b>Spam / Thư rác</b>), bấm vào đường link trong thư, rồi quay lại đây bấm <b>"Tôi đã xác minh"</b>.';
+        nuts = nut('bv4-xm-ok', '✅ Tôi đã xác minh — bắt đầu dùng thử', 1) + nut('bv4-xm-gui', '📨 Gửi lại thư xác minh', 0);
+      } else if(kt === 'bidanh'){
+        tt = '✉️ Email bí danh không dùng thử được';
+        mg = 'Email có dấu <b>"+"</b> (email bí danh) không mở được dùng thử. Hãy đăng ký bằng email thường, hoặc mua gói cho tài khoản này.';
+        nuts = nut('bv4-mua', '💳 Mua gói / Gia hạn', 1);
+      } else if(kt === 'khac'){
+        tt = '✉️ Hộp thư này đã dùng thử rồi';
+        mg = 'Hộp thư email này đã dùng thử ở một tài khoản khác. Gmail coi <b>ten@gmail.com</b>, <b>t.en@gmail.com</b> và <b>ten+1@gmail.com</b> là CÙNG một hộp thư nên chỉ được dùng thử 1 lần. Hãy đăng nhập lại tài khoản cũ để dùng tiếp, hoặc mua gói cho tài khoản này.';
+        nuts = nut('bv4-mua', '💳 Mua gói / Gia hạn', 1);
+      } else {
+        tt = '❌ Chưa mở được dùng thử';
+        mg = 'Máy chủ chưa cho mở dùng thử cho tài khoản này. Kiểm tra mạng rồi bấm Thử lại; vẫn không được thì mua gói hoặc gọi hotline để được hỗ trợ.';
+        nuts = nut('bv4-thulai', '🔄 Thử lại', 1) + nut('bv4-mua', '💳 Mua gói / Gia hạn', 0);
+      }
+      nuts += '<a href="tel:' + HOT_SO + '" style="display:block;text-align:center;margin-top:9px;background:#0f7a3d;color:#fff;border-radius:11px;padding:12px;font-weight:800;text-decoration:none;font-size:15px">📞 Gọi hotline hỗ trợ: ' + HOT + '</a>';
+      nuts += nut('bv4-ra', 'Đăng xuất' + (mail ? ' (' + esc(mail) + ')' : ''), 0) + nut('bv4-dong', 'Đóng', 0);
+      lop('<div style="font-size:19px;font-weight:800;margin:0 0 8px">' + tt + '</div><div style="font-size:14.5px;color:#36414d">' + mg + '</div>' + nuts);
+      gan('bv4-xm-ok', function(){ daXacMinh(c); });
+      gan('bv4-xm-gui', function(){ guiXacMinh(c, false); });
+      gan('bv4-mua', function(){ dongLop(); try{ if(c && c.moGiaHan) c.moGiaHan(); }catch(e){} });
+      gan('bv4-thulai', function(){ location.reload(); });
+      gan('bv4-ra', function(){ dongLop(); try{ if(c && c.dangXuat) c.dangXuat(); }catch(e){} });
+      gan('bv4-dong', dongLop);
+    }catch(e){}
+  }
+
+  /* ───────── 4) CHẶN NHẬP FILE SAO LƯU KHI ĐANG DÙNG THỬ ───────── */
+  var ACC = {};
+  function datAcc(app, acc){ ACC[app] = acc || null; }
+  function chanNhap(app){
+    try{
+      var a = ACC[app];
+      if(!a || a.admin || a.trial !== true) return false;
+      alert('🎁 Tài khoản đang DÙNG THỬ nên chưa nhập được dữ liệu từ tệp sao lưu.\n\nĐây là cách chặn việc đổi tài khoản để dùng thử mãi.\n\n• Mua gói (bấm Gia hạn) xong là nhập được ngay.\n• Muốn mang dữ liệu cũ sang tài khoản mới: gọi ' + HOT + '.');
+      return true;
+    }catch(e){ return false; }
+  }
+
+  /* ───────── 5) BẢNG 👑 NHÚNG TRONG APP CHỈ CÒN XEM ───────── */
+  var GHI = ['adminGrantApp', 'adminUnlockApp', 'adminActivate', 'adminLock', 'adminUnlock', 'adminDismissReq', 'adminDismiss',
+             'adminGrant', 'adminGrantMonths', 'adminGrantManual', 'saveBilling', 'openBilling', 'saveBillingConfig', 'openBillingConfig'];
+  function chiXem(){
+    try{
+      if(confirm('👑 Bảng quản trị trong app này nay CHỈ ĐỂ XEM.\n\nDuyệt đơn · gia hạn · khoá / mở khoá · vĩnh viễn · đổi tài khoản nhận tiền: làm trong app QUẢN TRỊ (có nhập lại mật khẩu, có nhật ký, ghi sổ doanh thu đúng giá).\n\nMở app Quản Trị ngay?')){
+        try{ var w = window.open(QT, '_blank'); if(!w) location.href = QT; }catch(e){ location.href = QT; }
+      }
+    }catch(e){}
+    return false;
+  }
+  chiXem.__bv4 = true;
+  function bangChiXem(){
+    try{
+      var l = document.getElementById('admin-list'); if(!l || !l.parentNode) return;
+      if(document.getElementById('bv4-chixem')) return;
+      var b = document.createElement('div'); b.id = 'bv4-chixem';
+      b.style.cssText = 'margin:0 0 12px;padding:11px 13px;border-radius:12px;background:#fff8e1;border:1.5px solid #f0c36d;color:#7a4b00;font:600 13.5px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+      b.innerHTML = '👀 Bảng này <b>chỉ để XEM</b>. Duyệt đơn · gia hạn · khoá · vĩnh viễn · đổi tài khoản nhận tiền làm trong <a href="' + QT + '" target="_blank" rel="noopener" style="color:#0b5cad;font-weight:800">app Quản Trị →</a>';
+      l.parentNode.insertBefore(b, l);
+    }catch(e){}
+  }
+  function khoaBang(){
+    try{
+      GHI.forEach(function(n){ if(typeof window[n] === 'function' && !window[n].__bv4) window[n] = chiXem; });
+      var oa = window.openAdmin;
+      if(typeof oa === 'function' && !oa.__bv4){
+        var moi = function(){ var r; try{ r = oa.apply(this, arguments); }finally{ bangChiXem(); } return r; };
+        moi.__bv4 = true; window.openAdmin = moi;
+      }
+    }catch(e){}
+  }
+  document.addEventListener('DOMContentLoaded', khoaBang);           /* chạy SAU mọi khối module của app (module chạy trước DOMContentLoaded) */
+  window.addEventListener('load', function(){ khoaBang(); setTimeout(khoaBang, 2500); });
+
+  window.BV4 = { ban:'2026-10-15', gac:gac, hoi:hoi, tuMo:tuMo, phanLoai:phanLoai, biChoi:biChoi, henHetHan:henHetHan, nhip:nhip, loi:loi, msHan:msHan,
+                 hopThuThat:hopThuThat, giuKhoa:giuKhoa, guiXacMinh:guiXacMinh, baoThuLoi:baoThuLoi, datAcc:datAcc, chanNhap:chanNhap, khoaBang:khoaBang };
+})();
+</script>
+<!-- ═══ HẾT [BV4] ═══ -->
 </body>
 </html>
