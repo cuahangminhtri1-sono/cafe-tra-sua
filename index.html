@@ -341,7 +341,7 @@ table.tb tr:last-child td{border-bottom:0}
 
 <!-- ============ 1. ĐĂNG NHẬP ============ -->
 <div id="auth-screen">
-  <div style="position:absolute;top:10px;right:12px;font:700 11px/1 monospace;color:#C9A24B;letter-spacing:.5px">v2026.10.15-C</div>
+  <div style="position:absolute;top:10px;right:12px;font:700 11px/1 monospace;color:#C9A24B;letter-spacing:.5px">v2026.11.20-C</div>
   <div class="auth-card">
     <div class="auth-logo">🧋</div>
     <h1>Quản Lý Cafe · Trà Sữa</h1>
@@ -3326,7 +3326,7 @@ function buildRenew(){
   const email=(auth.currentUser&&auth.currentUser.email)||''; const bank=renewBank();
   const total=giaGiaHan(renewPrice(),renewMonths);
   if(!bank){ box.innerHTML='<div class="rn-warn">Chủ phần mềm chưa cấu hình tài khoản nhận tiền. Vui lòng liên hệ để gia hạn.</div>'; logRenew(renewMonths,total); return; }
-  const qrUrl='https://img.vietqr.io/image/'+bank.bin+'-'+bank.account+'-compact2.png?amount='+total+'&addInfo='+encodeURIComponent(email)+'&accountName='+encodeURIComponent(bank.accName||'');
+  const qrUrl='https://img.vietqr.io/image/'+bank.bin+'-'+bank.account+'-compact2.png?amount='+total+'&addInfo='+encodeURIComponent('SEVQR '+email)+'&accountName='+encodeURIComponent(bank.accName||'');
   box.innerHTML=
     '<div class="rn-sum">Gia hạn <b>'+renewMonths+' tháng</b> · Tổng: <b style="color:var(--gold-l)">'+fmt(total)+'</b></div>'+kmSaveHtml(renewPrice(),renewMonths)
     +'<div class="rn-qrbox"><img src="'+qrUrl+'" alt="QR" onerror="this.style.display=\'none\'"><div class="rn-qrlab">Quét bằng app ngân hàng — số tiền &amp; nội dung điền sẵn</div></div>'
@@ -3335,9 +3335,9 @@ function buildRenew(){
       +'<div class="rn-line"><span>🔢 Số TK</span><b>'+esc(bank.account)+'</b></div>'
       +'<div class="rn-line"><span>👤 Chủ TK</span><b>'+esc(bank.accName||'')+'</b></div>'
       +'<div class="rn-line"><span>💰 Số tiền</span><b>'+fmt(total)+'</b></div>'
-      +'<div class="rn-line"><span>📝 Nội dung</span><b>'+esc(email)+'</b></div>'
+      +'<div class="rn-line"><span>📝 Nội dung</span><b>'+esc('SEVQR '+email)+'</b></div>'
     +'</div>'
-    +'<div class="rn-note">⚠️ Giữ <b>nguyên nội dung</b> (email của bạn) khi chuyển khoản để chủ phần mềm kích hoạt đúng tài khoản.</div>';
+    +'<div class="rn-note">⚠️ Giữ <b>nguyên nội dung</b> (SEVQR + email của bạn) khi chuyển khoản để chủ phần mềm kích hoạt đúng tài khoản.</div>';
   logRenew(renewMonths,total);
 }
 async function logRenew(months,amount){ try{ if(!auth.currentUser||isAdmin())return; const u=auth.currentUser;
@@ -3930,7 +3930,7 @@ if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
 <script type="module">
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-const APP_ID = "cafe", APP_VERSION = "2.2";
+const APP_ID = "cafe", APP_VERSION = "2.3";
 const FB = { apiKey:"AIzaSyA_kjQ-CdASRkf50Glz3kQajlkD5qGWC4k", authDomain:"so-no-cc57a.firebaseapp.com",
   projectId:"so-no-cc57a", storageBucket:"so-no-cc57a.firebasestorage.app",
   messagingSenderId:"571694791559", appId:"1:571694791559:web:8e409728a520e2d370b122" };
